@@ -1,0 +1,8 @@
+[Unit]
+Description=Bike data collection daemon
+
+[Service]
+ExecStart=/opt/data_collection_bike/collect.py
+
+[Install]
+WantedBy=multi-user.target

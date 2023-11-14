@@ -1,0 +1,4 @@
+dev=$1
+
+/sbin/hwclock --rtc=$dev --systz
+/sbin/hwclock --rtc=$dev --hctosys
