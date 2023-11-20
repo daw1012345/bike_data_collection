@@ -60,7 +60,7 @@ LED_ACTION_SUCCESS: List[LEDActionDescription] = [
 ]
 
 """ Path where collected data is written to"""
-DATA_PATH = "/tmp/collected_data.csv"
+DATA_PATH = "/home/scb1/collected_data.csv"
 
 """A list of configured buttons"""
 BUTTONS = [
