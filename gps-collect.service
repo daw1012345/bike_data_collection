@@ -1,0 +1,8 @@
+[Unit]
+Description=Bike data collection daemon
+
+[Service]
+ExecStart=python3 /opt/data_collection_bike/collect_gps.py
+
+[Install]
+WantedBy=multi-user.target

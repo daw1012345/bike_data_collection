@@ -19,3 +19,15 @@ cp bike-collect.service /lib/systemd/system/
 
 systemctl daemon-reload
 systemctl enable --now bike-collect.service 
+
+# GPS Things
+apt update
+apt install gpsd gpsd-clients
+
+cp gpsd /etc/default/
+cp collect_gps.py /opt/data_collection_bike/collect_gps.py
+cp gps-collect.service /lib/systemd/system/
+systemctl daemon-reload
+systemctl enable gps-collect.service
+
+sed -i 's/console=serial0,115200 //' /boot/cmdline.txt
