@@ -24,9 +24,9 @@ systemctl enable --now bike-collect.service
 apt update
 apt install gpsd gpsd-clients
 
-cp gpsd /etc/default/
-cp collect_gps.py /opt/data_collection_bike/collect_gps.py
-cp gps-collect.service /lib/systemd/system/
+mv gpsd /etc/default/
+mv collect_gps.py /opt/data_collection_bike/collect_gps.py
+mv gps-collect.service /lib/systemd/system/
 systemctl daemon-reload
 systemctl enable gps-collect.service
 
