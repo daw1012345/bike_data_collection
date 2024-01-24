@@ -4,6 +4,12 @@ from dataclasses import dataclass
 from typing import Optional, List
 from enum import IntEnum
 import datetime
+import asyncio
+import json
+import argparse
+import signal
+import sys
+import pytz
 
 """Describes an LED State"""
 
@@ -13,6 +19,50 @@ class LEDState(IntEnum):
     OFF = 1
     LOOP = 2
 
+
+class ButtonContext:
+    _shutdown_event = asyncio.Event()
+    _print_queue = asyncio.Queue()
+
+    _button_press_queue = asyncio.Queue()
+
+    def __init__(self, project, loop):
+        self._project = project
+        self._loop = loop
+
+    def get_loop(self):
+        return self._loop
+
+    def get_project(self) -> str:
+        return self._project
+
+    async def submit_print(self, msg: str):
+        await self._print_queue.put(
+            json.dumps({"component": "buttons", "data": {"log": msg}})
+        )
+    async def submit_print_preformatted(self, msg: str):
+        await self._print_queue.put(msg)
+
+    async def wait_for_print(self) -> str:
+        return await self._print_queue.get()
+
+    def print_done(self):
+        self._print_queue.task_done()
+
+    async def submit_button_press(self, button: "ButtonDescription"):
+        await self._button_press_queue.put(button)
+
+    async def wait_for_button_press(self) -> "ButtonDescription":
+        return await self._button_press_queue.get()
+
+    def button_press_done(self):
+        self._button_press_queue.task_done()
+
+    async def wait_for_shutdown(self):
+        await self._shutdown_event.wait()
+    
+    def shutdown(self):
+        self._shutdown_event.set()
 
 """Describes an LED action"""
 
@@ -59,9 +109,6 @@ LED_ACTION_SUCCESS: List[LEDActionDescription] = [
     LEDActionDescription(action=LEDState.OFF, duration=1),
 ]
 
-""" Path where collected data is written to"""
-DATA_PATH = "/home/scb1/collected_data.csv"
-
 """A list of configured buttons"""
 BUTTONS = [
     ButtonDescription(
@@ -85,22 +132,35 @@ def get_button(pin: int) -> Optional[ButtonDescription]:
     return btn[0] if btn else None
 
 
+async def print_task(ctx: ButtonContext):
+    while True:
+        if msg := await ctx.wait_for_print():
+            sys.stdout.write(f"{msg}\n")
+            sys.stdout.flush()
+        ctx.print_done()
+
+async def write_task(ctx: ButtonContext):
+    while True:
+        if button := await ctx.wait_for_button_press():
+            await ctx.submit_print_preformatted(json.dumps({"component": "buttons", "data": {"button": button.slug}}))
+            with open(f"{ctx.get_project()}buttons.ctx", "w") as fd:
+                button_entry = f"{datetime.datetime.now(tz=pytz.utc).isoformat()},{button.slug}\n"
+                fd.write(button_entry)
+                fd.flush()
+        ctx.button_press_done()
+
 """
 Executed every time a configured button is pressed. Appends the event to a CSV file immedietally. 
 """
 
 
-def handle_button_press(channel):
+def handle_button_press(ctx: ButtonContext, channel):
     button = get_button(channel)
     if not button:
-        print(f"[-] Unknown button pressed [pin={channel}]")
+        ctx.submit_print("Unknown button pressed!")
         return
-    print(f"Pressed button [name={button.name}]")
 
-    with open(DATA_PATH, "a") as fd:
-        button_entry = f"{datetime.datetime.now().isoformat()},{button.slug}\n"
-        fd.write(button_entry)
-        fd.flush()
+    ctx.get_loop().call_soon_threadsafe(ctx.submit_button_press, button)
 
     execute_led_action(LED_ACTION_SUCCESS)
 
@@ -125,7 +185,10 @@ Setup function, should be ran before anything else. Configures all the GPIO pins
 """
 
 
-def setup():
+def setup(ctx):
+    def press_wrapper(channel):
+        handle_button_press(ctx, channel)
+
     GPIO.setmode(GPIO.BCM)
     for button in BUTTONS:
         GPIO.setup(button.pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
@@ -133,17 +196,26 @@ def setup():
             button.pin,
             GPIO.RISING,
             bouncetime=button.bounce,
-            callback=handle_button_press,
+            callback=press_wrapper,
         )
     GPIO.setup(GPIO_LED_1, GPIO.OUT)
 
 
+async def main(project):
+    ctx = ButtonContext(project, asyncio.get_event_loop())
+    ctx.get_loop().add_signal_handler(signal.SIGINT, ctx.shutdown)
+    try:
+        setup(ctx)
+        execute_led_action(LED_ACTION_LAUNCH)
+        await ctx.wait_for_shutdown()
+    finally:
+        GPIO.cleanup()
+
+
 """Runs when the file is executed"""
 if __name__ == "__main__":
-    try:
-        setup()
-        execute_led_action(LED_ACTION_LAUNCH)
-        while True:
-            time.sleep(100)
-    except:
-        GPIO.cleanup()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project", required=True)
+    args, _ = parser.parse_known_args()
+    asyncio.run(main(args.project))
+        

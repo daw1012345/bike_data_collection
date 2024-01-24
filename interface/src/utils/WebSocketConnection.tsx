@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 
 export interface WebSocketConnectionProviderProps {

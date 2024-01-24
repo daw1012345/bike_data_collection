@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import React from 'react'
 import CssBaseline from '@mui/material/CssBaseline';
 import ConnectionStatus from './components/ConnectionStatus'
-import { WebSocketConnectionContext, WebSocketConnectionProvider } from './utils/WebSocketConnection';
-import { Box, Card, Divider, Paper, Skeleton, Stack, Typography } from '@mui/material';
+import { WebSocketConnectionContext} from './utils/WebSocketConnection';
+import { Paper, Skeleton, Stack, Typography } from '@mui/material';
 import PolarConfig from './components/PolarConfig';
 import PolarStatus from './components/PolarStatus';
 import ProjectConfig from './components/ProjectConfig';

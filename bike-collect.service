@@ -1,8 +1,8 @@
 [Unit]
-Description=Bike data collection daemon
+Description=Bike Data Collection Orchestrator
 
 [Service]
-ExecStart=python3 /opt/data_collection_bike/collect.py
+ExecStart=python3 /opt/bike_data_collection/orchestrator.py
 
 [Install]
 WantedBy=multi-user.target

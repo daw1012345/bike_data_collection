@@ -11,19 +11,20 @@ import datetime
 import pytz
 from collections import defaultdict
 
-# address = "DF:EF:DB:F6:20:16"
 SERVICE = "fb005c80-02e7-f387-1cad-8acd2d8df0c8"
 SERVICE_NOTIFY_PORT = "fb005c82-02e7-f387-1cad-8acd2d8df0c8"
 SERVICE_CONTROL_PORT = "fb005c81-02e7-f387-1cad-8acd2d8df0c8"
 
 # Something similar: https://github.com/kbre93/dont-hold-your-breath/blob/master/PolarH10.py
 
+
 @dataclass
 class PolarSample:
     time: datetime.datetime
     sample: "PMDFrame"
 
-class PolarContext():
+
+class PolarContext:
     _sample_queue = asyncio.Queue()
 
     _print_queue = asyncio.Queue()
@@ -33,7 +34,7 @@ class PolarContext():
 
     def __init__(self, project: str):
         self._project = project
-    
+
     def get_project(self) -> str:
         return self._project
 
@@ -45,10 +46,12 @@ class PolarContext():
 
     def did_deal_with_sample(self):
         self._sample_queue.task_done()
-    
+
     async def print_log(self, message: str):
-        await self._print_queue.put(json.dumps({"component": "polar", "data": {"log": message}}))
-    
+        await self._print_queue.put(
+            json.dumps({"component": "polar", "data": {"log": message}})
+        )
+
     async def print_preformatted(self, message: str):
         await self._print_queue.put(message)
 
@@ -77,6 +80,7 @@ class PMDSetting(IntEnum):
     factor = 5
     security = 6
 
+
 class PMDConfiguration:
     # TODO: Implement
     _settings: Mapping[PMDSetting, int] = dict()
@@ -86,12 +90,13 @@ class PMDConfiguration:
 
     def get() -> int:
         return 0
-    
+
     def clear():
         pass
 
     def serialize() -> bytes:
         return bytes()
+
 
 class PMDMeasurmentTypes(IntEnum):
     ECG = 0
@@ -107,13 +112,15 @@ class PMDMeasurmentTypes(IntEnum):
     OFFLINE_RECORDING = 13
     OFFLINE_HR = 14
 
+
 class PMDSaveLocation(IntEnum):
     ONLINE = 0
     OFFLINE = 1
 
     def as_bit_field(self) -> int:
         return self.value << 7
-    
+
+
 class PMDCommands(IntEnum):
     GET_SETTINGS = 0x01
     START_MEASUREMENT = 0x02
@@ -121,6 +128,7 @@ class PMDCommands(IntEnum):
     GET_STATUS = 0x05
 
     # There's more, see https://github.com/polarofficial/polar-ble-sdk/blob/ead9a4077ebc31e745192e0effeebacfd0ec2fa9/sources/iOS/ios-communications/Sources/iOSCommunications/ble/api/model/gatt/client/pmd/PmdControlPointCommand.swift
+
 
 class PMDError(IntEnum):
     success = 0
@@ -139,13 +147,15 @@ class PMDError(IntEnum):
     error_charging = 13
     disk_full = 14
 
+
 @dataclass(frozen=True)
 class PMDFrame:
     measurment_type: PMDMeasurmentTypes
-    timestamp: int 
-    frame_type: int 
+    timestamp: int
+    frame_type: int
     is_compressed: bool
     content: Any
+
 
 @dataclass(frozen=True)
 class PMDCPResponse:
@@ -155,19 +165,23 @@ class PMDCPResponse:
     error: PMDError
     rest: bytes
 
+
 @dataclass(frozen=True)
 class EcgSample:
-    timestamp: int # uint64
-    mv: int # int32
+    timestamp: int  # uint64
+    mv: int  # int32
+
 
 @dataclass(frozen=True)
 class PMDCECGData:
     timestamp: int
     samples: List[EcgSample]
 
+
 @dataclass(frozen=True)
 class PMDACCData:
     samples: List["PMDACCSample"]
+
 
 @dataclass(frozen=True)
 class PMDACCSample:
@@ -175,17 +189,32 @@ class PMDACCSample:
     y: int
     z: int
 
-def generate_start_message(measurement_type: PMDMeasurmentTypes, location: PMDSaveLocation, settings: PMDConfiguration) -> bytes:
+
+def generate_start_message(
+    measurement_type: PMDMeasurmentTypes,
+    location: PMDSaveLocation,
+    settings: PMDConfiguration,
+) -> bytes:
     #  0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00
-    base = bytes([PMDCommands.START_MEASUREMENT, location.as_bit_field() | measurement_type])
+    base = bytes(
+        [PMDCommands.START_MEASUREMENT, location.as_bit_field() | measurement_type]
+    )
     if measurement_type == PMDMeasurmentTypes.ECG:
         return base + bytes([0x00, 0x01, 0x82, 0x00, 0x01, 0x01, 0x0E, 0x00])
-    else: # For starting ACC measurments
-        return base + bytes([0x00, 0x01, 0xC8, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00])
-    # return 
+    else:  # For starting ACC measurments
+        return base + bytes(
+            [0x00, 0x01, 0xC8, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00]
+        )
+    # return
 
-def generate_stop_message(measurement_type: PMDMeasurmentTypes, location: PMDSaveLocation) -> bytes:
-    return bytes([PMDCommands.STOP_MEASURMENT, location.as_bit_field() | measurement_type])
+
+def generate_stop_message(
+    measurement_type: PMDMeasurmentTypes, location: PMDSaveLocation
+) -> bytes:
+    return bytes(
+        [PMDCommands.STOP_MEASURMENT, location.as_bit_field() | measurement_type]
+    )
+
 
 def parse_pmd_cp_reply(data: bytes) -> Any:
     return PMDCPResponse(
@@ -193,8 +222,9 @@ def parse_pmd_cp_reply(data: bytes) -> Any:
         op=data[1],
         measurement=PMDMeasurmentTypes(int(data[2])),
         error=PMDError(int(data[3])),
-        rest=data[4:]
+        rest=data[4:],
     )
+
 
 def parse_pmd_ecg(data: bytes) -> PMDCECGData | bytes:
     SAMPLE_SIZE = 3
@@ -205,32 +235,70 @@ def parse_pmd_ecg(data: bytes) -> PMDCECGData | bytes:
 
     parsed_samples = []
     for i in range(0, data_len, SAMPLE_SIZE):
-        parsed_samples.append(EcgSample(timestamp=0, mv=int.from_bytes(data[i:i+SAMPLE_SIZE], byteorder="little", signed=True)))
+        parsed_samples.append(
+            EcgSample(
+                timestamp=0,
+                mv=int.from_bytes(
+                    data[i : i + SAMPLE_SIZE], byteorder="little", signed=True
+                ),
+            )
+        )
 
     return PMDCECGData(timestamp=0, samples=parsed_samples)
+
 
 def parse_pmd_acc(data: bytes):
     SAMPLE_SIZE = 2
     data_len = len(data)
-    if (data_len % (SAMPLE_SIZE*3)) != 0 or data_len == 0:
+    if (data_len % (SAMPLE_SIZE * 3)) != 0 or data_len == 0:
         # print("Malformed!")
         return data
-    
+
     parsed_samples = []
 
-    for i in range(0, data_len, SAMPLE_SIZE*3):
-        parsed_samples.append(PMDACCSample(x=int.from_bytes(data[i:i+SAMPLE_SIZE], byteorder="little", signed=True),y=int.from_bytes(data[i+SAMPLE_SIZE:i+(SAMPLE_SIZE*2)], byteorder="little", signed=True),z=int.from_bytes(data[i+(SAMPLE_SIZE*2):i+(SAMPLE_SIZE*3)], byteorder="little", signed=True)))
+    for i in range(0, data_len, SAMPLE_SIZE * 3):
+        parsed_samples.append(
+            PMDACCSample(
+                x=int.from_bytes(
+                    data[i : i + SAMPLE_SIZE], byteorder="little", signed=True
+                ),
+                y=int.from_bytes(
+                    data[i + SAMPLE_SIZE : i + (SAMPLE_SIZE * 2)],
+                    byteorder="little",
+                    signed=True,
+                ),
+                z=int.from_bytes(
+                    data[i + (SAMPLE_SIZE * 2) : i + (SAMPLE_SIZE * 3)],
+                    byteorder="little",
+                    signed=True,
+                ),
+            )
+        )
 
     return PMDACCData(parsed_samples)
+
 
 def parse_pmd_content(data: PMDFrame) -> PMDFrame:
     match data.measurment_type:
         case PMDMeasurmentTypes.ECG:
-            return PMDFrame(data.measurment_type, data.timestamp, data.frame_type, data.is_compressed, parse_pmd_ecg(data.content))
+            return PMDFrame(
+                data.measurment_type,
+                data.timestamp,
+                data.frame_type,
+                data.is_compressed,
+                parse_pmd_ecg(data.content),
+            )
         case PMDMeasurmentTypes.ACC:
-            return PMDFrame(data.measurment_type, data.timestamp, data.frame_type, data.is_compressed, parse_pmd_acc(data.content))
+            return PMDFrame(
+                data.measurment_type,
+                data.timestamp,
+                data.frame_type,
+                data.is_compressed,
+                parse_pmd_acc(data.content),
+            )
         case _:
             return data
+
 
 def parse_pmd_frame(data: bytes) -> PMDFrame | None:
     if len(data) < 11:
@@ -241,7 +309,7 @@ def parse_pmd_frame(data: bytes) -> PMDFrame | None:
         timestamp=int.from_bytes(data[1:9], byteorder="little", signed=False),
         frame_type=int(data[9] & 0x7F),
         is_compressed=(int(data[9]) & 0x80) > 0,
-        content=data[10:]
+        content=data[10:],
     )
 
     return parse_pmd_content(frame)
@@ -252,18 +320,22 @@ async def pmd_message_handler(ctx: PolarContext, data: bytes):
     if not frame:
         await ctx.print_log("Invalid frame!")
         return
-    await ctx.put_sample(PolarSample(time=datetime.datetime.now(tz=pytz.utc), sample=frame))
+    await ctx.put_sample(
+        PolarSample(time=datetime.datetime.now(tz=pytz.utc), sample=frame)
+    )
 
 
 async def pmd_control_handler(_, data: bytes):
     parse_pmd_cp_reply(data)
 
+
 async def stdout_writer(ctx: PolarContext):
     while True:
         if msg := await ctx.get_next_print():
-            sys.stdout.write(msg + '\n')
+            sys.stdout.write(msg + "\n")
             sys.stdout.flush()
         ctx.did_print()
+
 
 def sample_writer_fmt(message: PolarSample) -> str:
     formatted_str = ""
@@ -277,21 +349,44 @@ def sample_writer_fmt(message: PolarSample) -> str:
 
     return formatted_str
 
+
 async def sample_writer_caller(ctx: PolarContext, message: PolarSample):
     match message.sample.measurment_type:
         case PMDMeasurmentTypes.ECG:
-            await ctx.print_preformatted(json.dumps({"component": "polar", "data": {"ecg": f"{message.sample.content.samples[0].mv} mV"}}))
+            await ctx.print_preformatted(
+                json.dumps(
+                    {
+                        "component": "polar",
+                        "data": {"ecg": f"{message.sample.content.samples[0].mv} mV"},
+                    }
+                )
+            )
         case PMDMeasurmentTypes.ACC:
-            await ctx.print_preformatted(json.dumps({"component": "polar", "data": {"acc": f"{message.sample.content.samples[0].x} mG | {message.sample.content.samples[0].y} mG | {message.sample.content.samples[0].z} mG"}}))
+            await ctx.print_preformatted(
+                json.dumps(
+                    {
+                        "component": "polar",
+                        "data": {
+                            "acc": f"{message.sample.content.samples[0].x} mG | {message.sample.content.samples[0].y} mG | {message.sample.content.samples[0].z} mG"
+                        },
+                    }
+                )
+            )
+
 
 async def sample_writer(ctx: PolarContext):
     SAMPLE_FREQ = 10
     elapsed_per_feature: Mapping[PMDMeasurmentTypes, int] = defaultdict(int)
-    fd_per_feature: Mapping[PMDMeasurmentTypes, Any] = defaultdict(lambda: int(SAMPLE_FREQ))
+    fd_per_feature: Mapping[PMDMeasurmentTypes, Any] = defaultdict(
+        lambda: int(SAMPLE_FREQ)
+    )
 
     try:
-        for name, value in [("ecg", PMDMeasurmentTypes.ECG), ("acc", PMDMeasurmentTypes.ACC)]:
-            fd_per_feature[value] = open(f"{ctx.get_project()}{name}.csv", 'w')
+        for name, value in [
+            ("ecg", PMDMeasurmentTypes.ECG),
+            ("acc", PMDMeasurmentTypes.ACC),
+        ]:
+            fd_per_feature[value] = open(f"{ctx.get_project()}{name}.csv", "w")
 
         while True:
             if msg := await ctx.wait_for_sample():
@@ -306,6 +401,7 @@ async def sample_writer(ctx: PolarContext):
         for v in fd_per_feature.values():
             v.flush()
             v.close()
+
 
 async def main(address, project):
     ctx = PolarContext(project)
@@ -326,18 +422,44 @@ async def main(address, project):
             async with BleakClient(device) as client:
                 await ctx.print_log("[+] Connected!")
                 # This will automatically stop on disconnect
-                await client.start_notify(SERVICE_NOTIFY_PORT, pmd_message_handler_wrapper)
+                await client.start_notify(
+                    SERVICE_NOTIFY_PORT, pmd_message_handler_wrapper
+                )
                 await client.start_notify(SERVICE_CONTROL_PORT, pmd_control_handler)
 
-                await client.write_gatt_char(SERVICE_CONTROL_PORT,  generate_start_message(PMDMeasurmentTypes.ECG, PMDSaveLocation.ONLINE, None), response=True)
-                await client.write_gatt_char(SERVICE_CONTROL_PORT,  generate_start_message(PMDMeasurmentTypes.ACC, PMDSaveLocation.ONLINE, None), response=True)
+                await client.write_gatt_char(
+                    SERVICE_CONTROL_PORT,
+                    generate_start_message(
+                        PMDMeasurmentTypes.ECG, PMDSaveLocation.ONLINE, None
+                    ),
+                    response=True,
+                )
+                await client.write_gatt_char(
+                    SERVICE_CONTROL_PORT,
+                    generate_start_message(
+                        PMDMeasurmentTypes.ACC, PMDSaveLocation.ONLINE, None
+                    ),
+                    response=True,
+                )
 
                 await ctx.wait_for_shutdown()
 
                 await ctx.print_log("[+] Shutting down...")
                 running = False
-                await client.write_gatt_char(SERVICE_CONTROL_PORT,  generate_stop_message(PMDMeasurmentTypes.ECG, PMDSaveLocation.ONLINE), response=True)
-                await client.write_gatt_char(SERVICE_CONTROL_PORT,  generate_stop_message(PMDMeasurmentTypes.ACC, PMDSaveLocation.ONLINE), response=True)
+                await client.write_gatt_char(
+                    SERVICE_CONTROL_PORT,
+                    generate_stop_message(
+                        PMDMeasurmentTypes.ECG, PMDSaveLocation.ONLINE
+                    ),
+                    response=True,
+                )
+                await client.write_gatt_char(
+                    SERVICE_CONTROL_PORT,
+                    generate_stop_message(
+                        PMDMeasurmentTypes.ACC, PMDSaveLocation.ONLINE
+                    ),
+                    response=True,
+                )
                 await client.stop_notify(SERVICE_NOTIFY_PORT)
                 await client.stop_notify(SERVICE_CONTROL_PORT)
 
@@ -347,6 +469,7 @@ async def main(address, project):
         except Exception as e:
             await ctx.print_log(repr(e))
             await ctx.print_log("[-] Connection failed, retrying...")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

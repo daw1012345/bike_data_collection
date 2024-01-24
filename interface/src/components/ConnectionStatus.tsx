@@ -1,8 +1,7 @@
-import { Button, Typography } from '@mui/material';
-import TextField from '@mui/material/TextField';
+import { Typography } from '@mui/material';
 import { Stack } from '@mui/system';
-import React, { useState } from 'react'
-import { WebSocketConnectionContext, WebSocketConnectionProvider, WebSocketConnectionState } from '../utils/WebSocketConnection';
+import React from 'react'
+import { WebSocketConnectionContext, WebSocketConnectionState } from '../utils/WebSocketConnection';
 import { ReadyState } from 'react-use-websocket';
 
 export default function ConnectionStatus() {

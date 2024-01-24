@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { WebSocketConnectionContext } from '../utils/WebSocketConnection';
 import { Chip, Stack, Typography } from '@mui/material';
 
@@ -7,7 +7,7 @@ export default function PolarStatus() {
     const [hrStatus, setHrStatus] = React.useState("--");
     const {lastMessage} = React.useContext(WebSocketConnectionContext);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (lastMessage == null) {
             return;
         }

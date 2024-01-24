@@ -1,9 +1,9 @@
 import { Button, Stack, TextField } from '@mui/material';
-import React, { useState } from 'react'
+import React from 'react'
 import { WebSocketConnectionContext, WebSocketConnectionState } from '../utils/WebSocketConnection';
 import { ReadyState } from 'react-use-websocket';
 
-export default function PolarConfig(props) {
+export default function PolarConfig(props: any) {
     const {sendMessage, lastMessage, readyState} = React.useContext<WebSocketConnectionState>(WebSocketConnectionContext);
     const [address, setAddress] = React.useState("DF:EF:DB:F6:20:16");
     const [needsApply, setNeedsApply] = React.useState(false);

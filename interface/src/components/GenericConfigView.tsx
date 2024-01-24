@@ -1,5 +1,4 @@
 import { Divider, Paper, Stack, Switch, Typography } from '@mui/material';
-import React, { lazy, useState } from 'react'
 
 export interface GenericConfigViewProps {
     name: string;

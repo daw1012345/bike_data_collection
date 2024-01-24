@@ -1,8 +1,8 @@
 import { Button, Stack, TextField } from '@mui/material';
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { WebSocketConnectionContext } from '../utils/WebSocketConnection';
 
-export default function ProjectConfig(props) {
+export default function ProjectConfig(props: any) {
     const {sendMessage} = React.useContext(WebSocketConnectionContext)
     const [name, setName] = React.useState(`project-${new Date().toJSON()}`);
 
