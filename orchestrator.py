@@ -28,8 +28,11 @@ else:
 
 # Global config
 PORT = 9999
-HOSTNAME = "localhost"
-BASE_PROJECT_PATH = "/tmp/"
+HOSTNAME = "0.0.0.0"
+if os.getenv("BIKE_DEBUG"):
+    BASE_PROJECT_PATH = "/tmp/"
+else:
+    BASE_PROJECT_PATH = "/opt/collected_data/"
 
 
 @dataclass(frozen=True)
@@ -45,13 +48,13 @@ ALL_AVAILABLE_COLLECTORS: List[CollectorDef] = [
         "polar",
         "polar",
         "The Polar H10 HR and ACC tracking module",
-        f"python3 {INSTALL_PATH}polar_iface.py",
+        f"{INSTALL_PATH}polar_iface.py",
     ),
     CollectorDef(
         "Buttons",
         "buttons",
         "Button-based emotion tracking module",
-        f"python3 {INSTALL_PATH}buttons.py",
+        f"{INSTALL_PATH}buttons.py",
     ),
 ]
 
@@ -73,10 +76,10 @@ class Configuration:
         for key, val in new_settings.items():
             self._settings[key] = val
 
-    def get_as_params(self) -> str:
-        params = ""
+    def get_as_params(self) -> List[str]:
+        params = []
         for k, v in self._settings.items():
-            params += f"--{k}={v} "
+            params.append(f"--{k}={v}")
         return params
 
 
@@ -96,7 +99,7 @@ class OrchestratorContext:
                 if possible_collector.slug in self.settings.get_collectors():
                     settings_str = (
                         self.settings.get_as_params()
-                        + f"--project={BASE_PROJECT_PATH}{project}/"
+                        + [f"--project={BASE_PROJECT_PATH}{project}/"]
                     )
                     self._tasks.add(
                         asyncio.create_task(
@@ -140,16 +143,17 @@ async def process_handler(
 ):
     print(f"Starting: {collector.path} {params}")
 
-    proc = await asyncio.create_subprocess_shell(
-        f"{collector.path} {params}", stdout=asyncio.subprocess.PIPE
+    proc = await asyncio.create_subprocess_exec("/usr/bin/python3",
+        collector.path, *params, stdout=asyncio.subprocess.PIPE
     )
+
     try:
         while data := await proc.stdout.readline():
             line = data.decode("ascii").rstrip()
             if line:
                 await ctx.forward(line)
     except asyncio.CancelledError:
-        proc.kill()
+        proc.terminate()
         raise
 
 

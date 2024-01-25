@@ -407,6 +407,7 @@ async def main(address, project):
     ctx = PolarContext(project)
     loop = asyncio.get_running_loop()
     loop.add_signal_handler(signal.SIGINT, ctx.shutdown)
+    loop.add_signal_handler(signal.SIGTERM, ctx.shutdown)
 
     write_task = asyncio.create_task(stdout_writer(ctx))
     sample_task = asyncio.create_task(sample_writer(ctx))

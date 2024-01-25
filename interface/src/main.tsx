@@ -9,7 +9,7 @@ import { WebSocketConnectionProvider } from './utils/WebSocketConnection.tsx';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <WebSocketConnectionProvider url={"ws://10.42.0.116:9999"}> 
+    <WebSocketConnectionProvider url={"ws://localhost:9999"}> 
       <App />
     </WebSocketConnectionProvider>
   </React.StrictMode>,

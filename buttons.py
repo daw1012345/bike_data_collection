@@ -132,22 +132,22 @@ def get_button(pin: int) -> Optional[ButtonDescription]:
     return btn[0] if btn else None
 
 
-async def print_task(ctx: ButtonContext):
+async def print_handler(ctx: ButtonContext):
     while True:
         if msg := await ctx.wait_for_print():
             sys.stdout.write(f"{msg}\n")
             sys.stdout.flush()
         ctx.print_done()
 
-async def write_task(ctx: ButtonContext):
-    while True:
-        if button := await ctx.wait_for_button_press():
-            await ctx.submit_print_preformatted(json.dumps({"component": "buttons", "data": {"button": button.slug}}))
-            with open(f"{ctx.get_project()}buttons.ctx", "w") as fd:
+async def write_handler(ctx: ButtonContext):
+    with open(f"{ctx.get_project()}buttons.csv", "w") as fd:
+        while True:
+            if button := await ctx.wait_for_button_press():
+                await ctx.submit_print_preformatted(json.dumps({"component": "buttons", "data": {"button": button.slug}}))
                 button_entry = f"{datetime.datetime.now(tz=pytz.utc).isoformat()},{button.slug}\n"
                 fd.write(button_entry)
                 fd.flush()
-        ctx.button_press_done()
+            ctx.button_press_done()
 
 """
 Executed every time a configured button is pressed. Appends the event to a CSV file immedietally. 
@@ -188,6 +188,8 @@ Setup function, should be ran before anything else. Configures all the GPIO pins
 def setup(ctx):
     def press_wrapper(channel):
         handle_button_press(ctx, channel)
+    
+    GPIO.setwarnings(False)
 
     GPIO.setmode(GPIO.BCM)
     for button in BUTTONS:
@@ -204,11 +206,18 @@ def setup(ctx):
 async def main(project):
     ctx = ButtonContext(project, asyncio.get_event_loop())
     ctx.get_loop().add_signal_handler(signal.SIGINT, ctx.shutdown)
+    ctx.get_loop().add_signal_handler(signal.SIGTERM, ctx.shutdown)
+    print_task = asyncio.create_task(print_handler(ctx))
+    write_task = asyncio.create_task(write_handler(ctx))
+
     try:
+    
         setup(ctx)
         execute_led_action(LED_ACTION_LAUNCH)
         await ctx.wait_for_shutdown()
     finally:
+        print_task.cancel()
+        write_task.cancel()
         GPIO.cleanup()
 
 

@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Install Deps
+apt update
+apt install nginx gpsd gpsd-clients python3-websockets python3-bleak
+
 # https://learn.adafruit.com/adding-a-real-time-clock-to-raspberry-pi/set-rtc-time
 # HW RTC Clock Setup
 raspi-config nonint do_i2c 0
@@ -20,28 +24,29 @@ mkdir -p /opt/collected_data/
 cp buttons.py /opt/bike_data_collection/
 cp polar_iface.py /opt/bike_data_collection/
 cp orchestrator.py /opt/bike_data_collection/
+cp wifi_start.py /opt/bike_data_collection/
 
 chmod a+rwx /opt/bike_data_collection/
 chmod a+rwx /opt/collected_data/
 
+cp ap-config.service /lib/systemd/system/
 cp bike-collect.service /lib/systemd/system/
 systemctl daemon-reload
-systemctl enable --now bike-collect.serivce
+systemctl enable --now bike-collect
+systemctl enable --now ap-config
 
 # Interface setup
-apt install nginx
 cp -r interface/dist/* /opt/bike_data_collection/webroot
 cp bike.conf /etc/nginx/sites-available/
 ln -s /etc/nginx/sites-available/bike.conf /etc/nginx/sites-enabled/bike.conf 
+rm /etc/nginx/sites-enabled/default
 systemctl enable --now nginx
 
 # Serial Things
-raspi-config noint do_serial 1 0
+raspi-config nonint do_serial_cons 1
+raspi-config nonint do_serial_hw 0
 
 # GPS Things
-apt update
-apt install gpsd gpsd-clients
-
 cp gpsd /etc/default/
 systemctl enable --now gpsd
 

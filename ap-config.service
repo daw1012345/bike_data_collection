@@ -1,0 +1,11 @@
+[Unit]
+Description=Wi-Fi Hotspot Config
+Wants=network-online.target
+After=network.target network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=python3 /opt/bike_data_collection/wifi_start.py
+
+[Install]
+WantedBy=multi-user.target
