@@ -111,6 +111,10 @@ class OrchestratorContext:
         async with self._tasks_lock:
             for task in self._tasks:
                 task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    print("Stop done")
 
             self._tasks.clear()
 
@@ -131,11 +135,16 @@ class OrchestratorContext:
     async def on_disconnect(self, conn):
         async with self._connections_lock:
             self._connections.remove(conn)
+        
+        await conn.close()
 
     async def forward(self, msg: str):
         async with self._connections_lock:
             for conn in self._connections:
-                await conn.send(msg)
+                try:
+                    await conn.send(msg)
+                except websockets.exceptions.ConnectionClosed:
+                    print("Tried forwarding message to closed connection!")
 
 
 async def process_handler(
@@ -152,9 +161,17 @@ async def process_handler(
             line = data.decode("ascii").rstrip()
             if line:
                 await ctx.forward(line)
-    except asyncio.CancelledError:
+    finally:
+        print(f"Stopping {collector.name}")
         proc.terminate()
-        raise
+        # Prevent a deadlock in some cases
+        await proc.stdout.read(4096)
+        try:
+            await asyncio.wait_for(proc.wait(), timeout=4)
+        except asyncio.TimeoutError:
+            print("Time's up, it's killin time")
+            proc.kill()
+
 
 
 async def stop_handler(ctx, msg):
@@ -294,49 +311,51 @@ async def message_handler(ctx: OrchestratorContext, websocket):
     }
 
     await ctx.on_connect(websocket)
-
-    async for message in websocket:
-        print(message)
-        try:
-            message: dict = json.loads(message)
-        except json.decoder.JSONDecodeError:
-            await websocket.send(
-                json.dumps(
-                    {
-                        "command": "unknown",
-                        "result": False,
-                        "message": "Malformed command!",
-                    }
+    try:
+        async for message in websocket:
+            print(message)
+            try:
+                message: dict = json.loads(message)
+            except json.decoder.JSONDecodeError:
+                await websocket.send(
+                    json.dumps(
+                        {
+                            "command": "unknown",
+                            "result": False,
+                            "message": "Malformed command!",
+                        }
+                    )
                 )
-            )
-            continue
+                continue
 
-        if "command" not in message:
-            await websocket.send(
-                json.dumps(
-                    {
-                        "command": "unknown",
-                        "result": False,
-                        "message": "Malformed command!",
-                    }
+            if "command" not in message:
+                await websocket.send(
+                    json.dumps(
+                        {
+                            "command": "unknown",
+                            "result": False,
+                            "message": "Malformed command!",
+                        }
+                    )
                 )
-            )
-            continue
+                continue
 
-        if message["command"] in HANDLERS:
-            await websocket.send(await HANDLERS[message["command"]](ctx, message))
-        else:
-            await websocket.send(
-                json.dumps(
-                    {
-                        "command": message["command"],
-                        "result": False,
-                        "message": "Malformed command!",
-                    }
+            if message["command"] in HANDLERS:
+                await websocket.send(await HANDLERS[message["command"]](ctx, message))
+            else:
+                await websocket.send(
+                    json.dumps(
+                        {
+                            "command": message["command"],
+                            "result": False,
+                            "message": "Malformed command!",
+                        }
+                    )
                 )
-            )
-
-    await ctx.on_disconnect(websocket)
+    except Exception as e:
+        print(e)
+    finally:
+        await ctx.on_disconnect(websocket)
 
 
 async def main():

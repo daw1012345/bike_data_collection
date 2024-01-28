@@ -9,7 +9,7 @@ export default function PolarConfig(props: any) {
     const [needsApply, setNeedsApply] = React.useState(false);
 
     React.useEffect(() => {
-        if (readyState == ReadyState.OPEN) {
+        if (readyState == ReadyState.OPEN && !props.started) {
             handleApply();
         }
     }, [readyState]);

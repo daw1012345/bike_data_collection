@@ -15,7 +15,6 @@ function App() {
   const [enabled, setEnabled] = React.useState<string[]>([]);
   const [synced, setSynced] = React.useState(false);
   const {sendMessage, lastMessage, readyState} = React.useContext(WebSocketConnectionContext);
-  // TODO: Make URL the hostname of rpi for auto-connection
 
   React.useEffect(() => {
     if (lastMessage == null) {
@@ -46,16 +45,15 @@ function App() {
   React.useEffect(() => {
     console.log(readyState);
     if (readyState === ReadyState.OPEN) {
-      console.log("Sent")
       sendMessage(JSON.stringify({command: "get_state"}));
     }
   }, [readyState]);
 
   React.useEffect(() => {
-    if (synced) {
+    if (synced && !started) {
       sendMessage(JSON.stringify({command: "set_collectors", collectors: enabled}));
     }
-  }, [enabled]);
+  }, [enabled, synced]);
 
   const setState = (name: string, state: boolean) =>  {
     if (state && !enabled.includes(name)) {

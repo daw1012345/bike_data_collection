@@ -11,12 +11,12 @@ export default function ButtonStatus() {
         }
 
         const msg = JSON.parse(lastMessage.data)
-        if (msg["component"] != "button" || msg["data"] == null) {
+        if (msg["component"] != "buttons" || msg["data"] == null) {
             return;
         }
 
-        if (msg["data"]["recent"] != null) {
-            setRecent(msg["data"]["recent"]);
+        if (msg["data"]["button"] != null) {
+            setRecent(msg["data"]["button"]);
         }
 
     }, [lastMessage])

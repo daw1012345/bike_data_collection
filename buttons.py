@@ -95,7 +95,7 @@ class ButtonDescription:
 
 
 """The pin to which the LED is connected"""
-GPIO_LED_1 = 8
+GPIO_LED_1 = 19
 
 """LED light show for after launch"""
 LED_ACTION_LAUNCH: List[LEDActionDescription] = [
@@ -115,10 +115,10 @@ BUTTONS = [
         slug="pleasant_1", name="Pleasantness 1", description="", bounce=500, pin=21
     ),
     ButtonDescription(
-        slug="pleasant_2", name="Pleasantness 2", description="", bounce=500, pin=24
+        slug="pleasant_2", name="Pleasantness 2", description="", bounce=500, pin=16
     ),
     ButtonDescription(
-        slug="pleasant_3", name="Pleasantness 2", description="", bounce=500, pin=25
+        slug="pleasant_3", name="Pleasantness 2", description="", bounce=500, pin=20
     ),
 ]
 
@@ -157,10 +157,12 @@ Executed every time a configured button is pressed. Appends the event to a CSV f
 def handle_button_press(ctx: ButtonContext, channel):
     button = get_button(channel)
     if not button:
-        ctx.submit_print("Unknown button pressed!")
         return
 
-    ctx.get_loop().call_soon_threadsafe(ctx.submit_button_press, button)
+    async def press_wrapper():
+        await ctx.submit_button_press(button)
+
+    asyncio.run_coroutine_threadsafe(press_wrapper(), ctx.get_loop())
 
     execute_led_action(LED_ACTION_SUCCESS)
 
@@ -211,7 +213,6 @@ async def main(project):
     write_task = asyncio.create_task(write_handler(ctx))
 
     try:
-    
         setup(ctx)
         execute_led_action(LED_ACTION_LAUNCH)
         await ctx.wait_for_shutdown()
