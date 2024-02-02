@@ -143,7 +143,8 @@ class OrchestratorContext:
             for conn in self._connections:
                 try:
                     await conn.send(msg)
-                except websockets.exceptions.ConnectionClosed:
+                except Exception as e:
+                    print(e)
                     print("Tried forwarding message to closed connection!")
 
 
