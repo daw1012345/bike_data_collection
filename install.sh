@@ -3,7 +3,7 @@ set -e
 
 # Install Deps
 apt update
-apt install nginx gpsd gpsd-clients python3-websockets python3-bleak
+apt install -y nginx python3-websockets python3-bleak
 
 # https://learn.adafruit.com/adding-a-real-time-clock-to-raspberry-pi/set-rtc-time
 # HW RTC Clock Setup
@@ -12,9 +12,9 @@ systemctl disable fake-hwclock
 apt-get -y remove fake-hwclock
 update-rc.d -f fake-hwclock remove
 
-cp hwclock-set /lib/udev/hwclock-set
-
 echo "dtoverlay=i2c-rtc,pcf8523" >> /boot/config.txt
+
+timedatectl set-timezone Europe/Amsterdam
 
 # Install Python scripts
 mkdir -p /opt/bike_data_collection/
