@@ -31,9 +31,6 @@ chmod a+rwx /opt/collected_data/
 
 cp ap-config.service /lib/systemd/system/
 cp bike-collect.service /lib/systemd/system/
-systemctl daemon-reload
-systemctl enable --now bike-collect
-systemctl enable --now ap-config
 
 # Interface setup
 cp -r interface/dist/* /opt/bike_data_collection/webroot
@@ -42,12 +39,16 @@ ln -s /etc/nginx/sites-available/bike.conf /etc/nginx/sites-enabled/bike.conf
 rm /etc/nginx/sites-enabled/default
 systemctl enable --now nginx
 
+systemctl daemon-reload
+systemctl enable --now bike-collect
+systemctl enable --now ap-config
+
 # Serial Things
-raspi-config nonint do_serial_cons 1
-raspi-config nonint do_serial_hw 0
+# raspi-config nonint do_serial_cons 1
+# raspi-config nonint do_serial_hw 0
 
 # GPS Things
-cp gpsd /etc/default/
-systemctl enable --now gpsd
+# cp gpsd /etc/default/
+# systemctl enable --now gpsd
 
-echo "Reboot to apply everything"
+# echo "Reboot to apply everything"
