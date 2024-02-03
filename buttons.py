@@ -11,10 +11,10 @@ import signal
 import sys
 import pytz
 
-"""Describes an LED State"""
 
 
 class LEDState(IntEnum):
+    """Describes an LED State"""
     ON = 0
     OFF = 1
     LOOP = 2
@@ -64,13 +64,13 @@ class ButtonContext:
     def shutdown(self):
         self._shutdown_event.set()
 
-"""Describes an LED action"""
 
 
 @dataclass
 class LEDActionDescription:
-    """The state the LED should be put into"""
+    """Describes an LED action"""
 
+    """The state the LED should be put into"""
     action: LEDState
     """The duration the LED should stay in said state"""
     duration: int
@@ -81,8 +81,9 @@ class LEDActionDescription:
 
 @dataclass
 class ButtonDescription:
-    """A name for the button without spaces, special chars."""
+    """Describes an LED action"""
 
+    """A name for the button without spaces, special chars."""
     slug: str
     """A human-readable name for the button"""
     name: str
@@ -122,12 +123,10 @@ BUTTONS = [
     ),
 ]
 
-"""
-Finds a button description depending on the pin. Useful for 
-"""
-
-
 def get_button(pin: int) -> Optional[ButtonDescription]:
+    """
+    Finds a button description depending on the pin.
+    """
     btn = list(filter(lambda x: x.pin == pin, BUTTONS))
     return btn[0] if btn else None
 
@@ -149,12 +148,11 @@ async def write_handler(ctx: ButtonContext):
                 fd.flush()
             ctx.button_press_done()
 
-"""
-Executed every time a configured button is pressed. Appends the event to a CSV file immedietally. 
-"""
-
 
 def handle_button_press(ctx: ButtonContext, channel):
+    """
+    Executed every time a configured button is pressed. Appends the event to a CSV file immedietally. 
+    """
     button = get_button(channel)
     if not button:
         return
@@ -167,12 +165,11 @@ def handle_button_press(ctx: ButtonContext, channel):
     execute_led_action(LED_ACTION_SUCCESS)
 
 
-"""
-Follows a set of LEDActionDescriptions to create a simple LED effect.
-"""
-
 
 def execute_led_action(action: List[LEDActionDescription]):
+    """
+    Follows a set of LEDActionDescriptions to create a simple LED effect.
+    """
     for act in action:
         if act.action == LEDState.ON:
             GPIO.output(GPIO_LED_1, GPIO.HIGH)
@@ -182,12 +179,11 @@ def execute_led_action(action: List[LEDActionDescription]):
         time.sleep(act.duration / 1000)
 
 
-"""
-Setup function, should be ran before anything else. Configures all the GPIO pins.
-"""
-
 
 def setup(ctx):
+    """
+    Setup function, should be ran before anything else. Configures all the GPIO pins.
+    """
     def press_wrapper(channel):
         handle_button_press(ctx, channel)
     
