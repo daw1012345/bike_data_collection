@@ -12,9 +12,9 @@ import sys
 import pytz
 
 
-
 class LEDState(IntEnum):
     """Describes an LED State"""
+
     ON = 0
     OFF = 1
     LOOP = 2
@@ -40,6 +40,7 @@ class ButtonContext:
         await self._print_queue.put(
             json.dumps({"component": "buttons", "data": {"log": msg}})
         )
+
     async def submit_print_preformatted(self, msg: str):
         await self._print_queue.put(msg)
 
@@ -60,10 +61,9 @@ class ButtonContext:
 
     async def wait_for_shutdown(self):
         await self._shutdown_event.wait()
-    
+
     def shutdown(self):
         self._shutdown_event.set()
-
 
 
 @dataclass
@@ -123,6 +123,7 @@ BUTTONS = [
     ),
 ]
 
+
 def get_button(pin: int) -> Optional[ButtonDescription]:
     """
     Finds a button description depending on the pin.
@@ -138,12 +139,19 @@ async def print_handler(ctx: ButtonContext):
             sys.stdout.flush()
         ctx.print_done()
 
+
 async def write_handler(ctx: ButtonContext):
     with open(f"{ctx.get_project()}buttons.csv", "w") as fd:
         while True:
             if button := await ctx.wait_for_button_press():
-                await ctx.submit_print_preformatted(json.dumps({"component": "buttons", "data": {"button": button.slug}}))
-                button_entry = f"{datetime.datetime.now(tz=pytz.utc).isoformat()},{button.slug}\n"
+                await ctx.submit_print_preformatted(
+                    json.dumps(
+                        {"component": "buttons", "data": {"button": button.slug}}
+                    )
+                )
+                button_entry = (
+                    f"{datetime.datetime.now(tz=pytz.utc).isoformat()},{button.slug}\n"
+                )
                 fd.write(button_entry)
                 fd.flush()
             ctx.button_press_done()
@@ -151,7 +159,7 @@ async def write_handler(ctx: ButtonContext):
 
 def handle_button_press(ctx: ButtonContext, channel):
     """
-    Executed every time a configured button is pressed. Appends the event to a CSV file immedietally. 
+    Executed every time a configured button is pressed. Appends the event to a CSV file immedietally.
     """
     button = get_button(channel)
     if not button:
@@ -163,7 +171,6 @@ def handle_button_press(ctx: ButtonContext, channel):
     asyncio.run_coroutine_threadsafe(press_wrapper(), ctx.get_loop())
 
     execute_led_action(LED_ACTION_SUCCESS)
-
 
 
 def execute_led_action(action: List[LEDActionDescription]):
@@ -179,14 +186,14 @@ def execute_led_action(action: List[LEDActionDescription]):
         time.sleep(act.duration / 1000)
 
 
-
 def setup(ctx):
     """
     Setup function, should be ran before anything else. Configures all the GPIO pins.
     """
+
     def press_wrapper(channel):
         handle_button_press(ctx, channel)
-    
+
     GPIO.setwarnings(False)
 
     GPIO.setmode(GPIO.BCM)
@@ -224,4 +231,3 @@ if __name__ == "__main__":
     parser.add_argument("--project", required=True)
     args, _ = parser.parse_known_args()
     asyncio.run(main(args.project))
-        

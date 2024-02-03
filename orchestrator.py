@@ -97,10 +97,9 @@ class OrchestratorContext:
         async with self._tasks_lock:
             for possible_collector in ALL_AVAILABLE_COLLECTORS:
                 if possible_collector.slug in self.settings.get_collectors():
-                    settings_str = (
-                        self.settings.get_as_params()
-                        + [f"--project={BASE_PROJECT_PATH}{project}/"]
-                    )
+                    settings_str = self.settings.get_as_params() + [
+                        f"--project={BASE_PROJECT_PATH}{project}/"
+                    ]
                     self._tasks.add(
                         asyncio.create_task(
                             process_handler(possible_collector, settings_str, self)
@@ -135,7 +134,7 @@ class OrchestratorContext:
     async def on_disconnect(self, conn):
         async with self._connections_lock:
             self._connections.remove(conn)
-        
+
         await conn.close()
 
     async def forward(self, msg: str):
@@ -153,8 +152,8 @@ async def process_handler(
 ):
     print(f"Starting: {collector.path} {params}")
 
-    proc = await asyncio.create_subprocess_exec("/usr/bin/python3",
-        collector.path, *params, stdout=asyncio.subprocess.PIPE
+    proc = await asyncio.create_subprocess_exec(
+        "/usr/bin/python3", collector.path, *params, stdout=asyncio.subprocess.PIPE
     )
 
     try:
@@ -172,7 +171,6 @@ async def process_handler(
         except asyncio.TimeoutError:
             print("Time's up, it's killin time")
             proc.kill()
-
 
 
 async def stop_handler(ctx, msg):
